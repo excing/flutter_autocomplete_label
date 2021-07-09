@@ -5,59 +5,61 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_widget_offset/flutter_widget_offset.dart';
 
-typedef ValueBuild<T> = Widget Function(
+typedef ValueBuild = Widget Function(
   BuildContext context,
   int index,
 );
 
-typedef ValueBoxBuild<T> = Widget Function(
+typedef ValueBoxBuild = Widget Function(
   BuildContext context,
   List<Widget> children,
 );
 
-typedef SuggestionBuild<T> = Widget Function(
+typedef SuggestionBuild = Widget Function(
   BuildContext context,
   int index,
 );
 
-typedef SuggestionBoxBuild<T> = Widget Function(
+typedef SuggestionBoxBuild = Widget Function(
   BuildContext context,
-  SuggestionBuild<T> suggestionBuild,
+  SuggestionBuild suggestionBuild,
 );
 
-typedef ValueMatch<T> = bool Function(String text);
+typedef ValueMatch = bool Function(String text);
 typedef ValueAdder<T> = T Function(String text);
+
+typedef OnChanged<T> = void Function(List<T> labels);
 
 class AutoLabelInputController<T> extends ChangeNotifier {
   AutoLabelInputController({
-    this.source = const [],
-    this.values = const [],
-    this.suggestions = const [],
-  });
+    List<T>? source,
+    List<T>? values,
+  })  : this.source = source ?? [],
+        this.values = values ?? [];
 
   final List<T> source;
   final List<T> values;
-  final List<T> suggestions;
+  final List<T> suggestions = [];
 }
 
 class AutoLabelInput<T> extends StatefulWidget {
-  final ValueBuild<T>? valueBuild;
-  final ValueBoxBuild<T>? valueBoxBuild;
-  final SuggestionBuild<T>? suggestionBuild;
-  final SuggestionBoxBuild<T>? suggestionBoxBuild;
-
-  final LabelValueBox labelValueBox;
+  final ValueBuild? valueBuild;
+  final ValueBoxBuild? valueBoxBuild;
+  final SuggestionBuild? suggestionBuild;
+  final SuggestionBoxBuild? suggestionBoxBuild;
 
   final AutoLabelInputController? autoLabelInputController;
   final TextEditingController? textEditingController;
-  final ValueMatch<T>? onValueMatch;
-  final ValueAdder<T>? onValueAdder;
+  final ValueMatch? onValueMatch;
+  final ValueAdder? onValueAdder;
 
   final InputDecoration? textFieldDecoration;
   final TextStyle? textFieldStyle;
   final StrutStyle? textFieldStrutStyle;
   final String hintText;
   final bool autofocus;
+  final FocusNode? focusNode;
+  final OnChanged? onChanged;
 
   AutoLabelInput({
     Key? key,
@@ -69,14 +71,14 @@ class AutoLabelInput<T> extends StatefulWidget {
     this.textEditingController,
     this.onValueMatch,
     this.onValueAdder,
-    LabelValueBox? labelValueBox,
     this.textFieldDecoration,
     this.textFieldStyle,
     this.textFieldStrutStyle,
     this.hintText = "Add a label",
     this.autofocus = false,
-  })  : this.labelValueBox = labelValueBox ?? LabelValueBox(),
-        super(key: key);
+    this.focusNode,
+    this.onChanged,
+  }) : super(key: key);
 
   @override
   State<StatefulWidget> createState() {
@@ -119,7 +121,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
     _textEditingController =
         widget.textEditingController ?? TextEditingController();
     _autoLabelInputController =
-        widget.autoLabelInputController ?? AutoLabelInputController();
+        widget.autoLabelInputController ?? AutoLabelInputController<T>();
     WidgetsBinding.instance!.addPostFrameCallback((duration) {
       if (mounted) {
         _overlayEntry = _createOverlayEntry();
@@ -175,6 +177,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
         child: OffsetDetector(
           onChanged: _onOffsetChanged,
           child: TextField(
+            focusNode: widget.focusNode,
             style: widget.textFieldStyle,
             strutStyle: widget.textFieldStrutStyle,
             decoration: widget.textFieldDecoration ??
@@ -211,7 +214,21 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
   Widget _valueBoxBuild(BuildContext context, List<Widget> children) {
     return Container(
+      padding: EdgeInsets.all(10),
+      decoration: const BoxDecoration(
+        border: Border(
+            bottom: BorderSide(
+          color: Colors.grey,
+          width: 1.0,
+          style: BorderStyle.solid,
+        )),
+      ),
       child: Wrap(
+        spacing: 12,
+        runSpacing: 13,
+        alignment: WrapAlignment.start,
+        runAlignment: WrapAlignment.end,
+        textDirection: TextDirection.ltr,
         children: children,
       ),
     );
@@ -222,7 +239,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   }
 
   Widget _suggestionBoxBuild(
-      BuildContext context, SuggestionBuild<T> suggestionBuild) {
+      BuildContext context, SuggestionBuild suggestionBuild) {
     return ListView.builder(
       itemCount: _autoLabelInputController.suggestions.length,
       itemBuilder: (context, index) {
@@ -263,7 +280,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
     final lastChar = value.substring(value.length - 1);
     if (lastChar == '\n' || lastChar == "," || lastChar == "，") {
-      _onAddLabel(value);
+      _onAddLabel(value.substring(0, value.length - 1));
       return;
     }
 
@@ -278,27 +295,29 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
       }
     }
 
-    _openSuggestionBox();
+    if (0 < _autoLabelInputController.suggestions.length) _openSuggestionBox();
   }
 
   void _onEditingComplete() {
-    _onAddLabel(_textEditingController.text);
+    if (_textEditingController.text.isNotEmpty)
+      _onAddLabel(_textEditingController.text);
   }
 
   void _onAddLabel(String value) {
     _closeSuggestionBox();
-    final text = value.substring(0, value.length - 1);
     setState(() {
       if (widget.onValueAdder != null) {
-        _autoLabelInputController.values.add(widget.onValueAdder!(text));
+        _autoLabelInputController.values.add(widget.onValueAdder!(value));
       } else {
-        _autoLabelInputController.values.add(text.trim());
+        _autoLabelInputController.values.add(value.trim());
       }
     });
+    _textEditingController.text = "";
+    if (widget.onChanged != null) {
+      widget.onChanged!(_autoLabelInputController.values);
+    }
   }
 }
-
-class LabelValueBox extends Container {}
 
 /// Same as `IntrinsicWidth` except that when this widget is instructed
 /// to `computeDryLayout()`, it doesn't invoke that on its child, instead
