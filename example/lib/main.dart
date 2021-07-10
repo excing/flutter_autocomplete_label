@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_auto_label_input/auto_label_input.dart';
 
@@ -28,18 +29,92 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final AutoLabelInputController _autoLabelInputController =
+      AutoLabelInputController<String>(source: [
+    "Android",
+    "iOS",
+    "Flutter",
+    "Windows",
+    "Web",
+    "Fuchsia",
+    "Dart",
+    "Golang",
+    "Java",
+    "Python",
+    "Ruby",
+    "c/c++",
+    "Kotlin",
+    "Swift",
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "PHP",
+    "GitHub",
+    "Google",
+    "Facebook",
+    "KnowlGraph",
+    "Twitter",
+    "Tiktok",
+    "StackOverflow",
+    "WeiXin",
+    "Alibaba",
+    "youtube",
+  ]);
+
+  @override
+  void dispose() {
+    _autoLabelInputController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
       ),
-      body: Center(
+      body: Padding(
+        padding: EdgeInsets.all(8.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            AutoLabelInput<String>(
-              onChanged: (labels) => print("$labels"),
+          children: [
+            Expanded(
+              flex: 1,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: AutoLabelInput<String>(
+                      autoLabelInputController: _autoLabelInputController,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: AutoLabelInput<String>(
+                      autoLabelInputController: _autoLabelInputController,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: AutoLabelInput<String>(
+                      autoLabelInputController: _autoLabelInputController,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
