@@ -75,48 +75,17 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Padding(
         padding: EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 1,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: AutoLabelInput<String>(
-                      autoLabelInputController: _autoLabelInputController,
-                    ),
-                  ),
-                ],
+        child: Center(
+          child: Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: AutoLabelInput<String>(
+                  autoLabelInputController: _autoLabelInputController,
+                ),
               ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: AutoLabelInput<String>(
-                      autoLabelInputController: _autoLabelInputController,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: AutoLabelInput<String>(
-                      autoLabelInputController: _autoLabelInputController,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
