@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="flutter.auto.label.input.example.example">
+    package="flutter.auto.label.input.example">
    <application
         android:label="AutoLabelInput Example"
         android:icon="@mipmap/ic_launcher">

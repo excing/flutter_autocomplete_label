@@ -33,7 +33,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "flutter.auto.label.input.example.example"
+        applicationId "flutter.auto.label.input.example"
         minSdkVersion 16
         targetSdkVersion 30
         versionCode flutterVersionCode.toInteger()
