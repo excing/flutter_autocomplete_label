@@ -90,7 +90,7 @@ typedef OnSelected<T extends Object> = void Function(int index);
 /// See also:
 ///
 ///   * [AutoLabelInput.optionsBuilder], which is of this type.
-typedef OptionsBuilder<T> = Iterable<T> Function(String textEditingValue);
+typedef OptionsBuilder<T> = Iterable<T> Function(String text);
 
 /// The type of the Autocomplete callback which returns the widget that
 /// contains the input [TextField] or [TextFormField].
@@ -112,7 +112,7 @@ typedef FieldViewBuilder = Widget Function(
 /// See also:
 ///
 ///   * [AutoLabelInput.valueBuilder], which is of this type.
-typedef ValueBuilder<T> = T Function(String textEditingValue);
+typedef ValueBuilder<T> = T Function(String text);
 
 /// The type of the [AutoLabelInput] callback that converts an option value to
 /// a string which can be displayed in the widget's options menu.
@@ -122,8 +122,15 @@ typedef ValueBuilder<T> = T Function(String textEditingValue);
 ///   * [AutoLabelInput.displayStringForOption], which is of this type.
 typedef OptionToString<T> = String Function(T option);
 
+/// The type of the callback used by the [AutoLabelInput] widget to indicate
+/// that the values has changed.
+///
+/// See also:
+///
+///   * [AutoLabelInput.onChanged], which is of this type.
 typedef OnChanged<T> = void Function(Iterable<T> values);
 
+/// A controller for an editable autocomplete label field.
 class AutoLabelInputController<T> extends ChangeNotifier {
   AutoLabelInputController({
     List<T>? source,
@@ -569,8 +576,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
     _updateOptionBox();
   }
 
-  Iterable<T> _optionsBuilder(String text) {
-    List<T> options = [];
+  void _handleOptionsBuilder(String text) {
     for (int i = 0; i < widget.autoLabelInputController.source.length; i++) {
       var item = widget.autoLabelInputController.source[i];
       if (widget
@@ -578,11 +584,9 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
               .toLowerCase()
               .contains(text.trim().toLowerCase()) &&
           !widget.autoLabelInputController.values.contains(item)) {
-        options.add(item);
+        widget.autoLabelInputController.options.add(item);
       }
     }
-
-    return options;
   }
 
   void _handleTextChanged() {
@@ -611,7 +615,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
       widget.autoLabelInputController.options
           .addAll(widget.optionsBuilder!(value));
     } else {
-      widget.autoLabelInputController.options.addAll(_optionsBuilder(value));
+      _handleOptionsBuilder(value);
     }
 
     if (0 < widget.autoLabelInputController.options.length) {
