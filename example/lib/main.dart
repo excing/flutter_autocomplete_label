@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_auto_label_input/auto_label_input.dart';
 
 void main() {
@@ -61,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
     "youtube",
   ]);
 
-  bool _autoSuggestionHide = false;
+  bool _autoOptionHide = false;
 
   @override
   void dispose() {
@@ -76,10 +77,10 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         actions: [
           Switch(
-            value: _autoSuggestionHide,
+            value: _autoOptionHide,
             onChanged: (value) {
               setState(() {
-                _autoSuggestionHide = value;
+                _autoOptionHide = value;
               });
             },
           )
@@ -93,9 +94,10 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 flex: 1,
                 child: AutoLabelInput<String>(
-                  autoSuggestionHide: _autoSuggestionHide,
-                  onChanged: (labels) => print("$labels"),
+                  autoOptionHide: _autoOptionHide,
+                  onChanged: (values) => print("$values"),
                   autoLabelInputController: _autoLabelInputController,
+                  optionBoxDirection: VerticalDirection.up,
                 ),
               ),
             ],

@@ -78,6 +78,6 @@ class LabelValueBoxStyle {
   });
 }
 
-class LabelSuggestionStyle {}
+class LabelOptionStyle {}
 
-class LabelSuggestionBoxStyle {}
+class LabelOptionBoxStyle {}

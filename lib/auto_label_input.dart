@@ -4,33 +4,125 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_widget_offset/flutter_widget_offset.dart';
 
-typedef ValueBuild = Widget Function(
+/// The type of [AutoLabelInput] callback,
+/// which returns a widget that displays the specified label.
+///
+/// The label can be obtained in the [AutoLabelInputController.values] attribute.
+///
+/// See also:
+///
+///   * [AutoLabelInput.valueViewBuilder], which is of this type.
+typedef ValueViewBuilder<T> = Widget Function(
   BuildContext context,
+  ValueOnDeleted onDeleted,
   int index,
+  T value,
 );
 
-typedef ValueBoxBuild = Widget Function(
+/// The type of [AutoLabelInput] callback.
+/// It returns a widget that wraps all labels and input boxes [textField],
+/// and can call [valueViewBuilder] to create a label widget.
+///
+/// See also:
+///
+///   * [AutoLabelInput.valueBoxBuilder], which is of this type.
+typedef ValueBoxBuilder<T> = Widget Function(
   BuildContext context,
-  List<Widget> children,
+  ValueOnDeleted onDeleted,
+  ValueViewBuilder valueViewBuilder,
+  Widget textField,
+  Iterable<T> values,
 );
 
-typedef SuggestionBuild = Widget Function(
+/// The type of the callback used by the [AutoLabelInput] widget to indicate
+/// that the user has deleted an entered label.
+///
+/// See also:
+///
+///   * [AutoLabelInput.onDeleted], which is of this type.
+typedef ValueOnDeleted = void Function(int index);
+
+/// The type of [AutoLabelInput] callback,
+/// which returns a widget that displays the specified option.
+///
+/// See also:
+///
+///   * [AutoLabelInput.optionViewBuilder], which is of this type.
+typedef OptionViewBuilder<T> = Widget Function(
   BuildContext context,
+  OnSelected onSelected,
   int index,
+  T option,
+  bool isHighlight,
 );
 
-typedef SuggestionBoxBuild = Widget Function(
+/// The type of [AutoLabelInput] callback,
+/// which returns a widget that wraps all options.
+///
+/// See also:
+///
+///   * [AutoLabelInput.optionBoxBuilder], which is of this type.
+typedef OptionBoxBuilder<T> = Widget Function(
   BuildContext context,
-  SuggestionBuild suggestionBuild,
+  OnSelected onSelected,
+  OptionViewBuilder optionViewBuilder,
+  Iterable<T> options,
+  int highlightIndex,
+  AxisDirection boxDirection,
 );
 
-typedef ValueMatch = bool Function(String text);
-typedef ValueAdder<T> = T Function(String text);
+/// The type of the callback used by the [AutoLabelInput] widget to indicate
+/// that the user has selected an option.
+///
+/// See also:
+///
+///   * [AutoLabelInput.onSelected], which is of this type.
+typedef OnSelected<T extends Object> = void Function(int index);
 
-typedef OnChanged<T> = void Function(List<T> labels);
+/// The type of the [AutoLabelInput] callback
+/// which computes the list of optional completions
+/// for the widget's field based on the text the user has entered so far.
+///
+/// See also:
+///
+///   * [AutoLabelInput.optionsBuilder], which is of this type.
+typedef OptionsBuilder<T> = Iterable<T> Function(String textEditingValue);
+
+/// The type of the Autocomplete callback which returns the widget that
+/// contains the input [TextField] or [TextFormField].
+///
+/// See also:
+///
+///   * [AutoLabelInput.fieldViewBuilder], which is of this type.
+typedef FieldViewBuilder = Widget Function(
+  BuildContext context,
+  TextEditingController textEditingController,
+  FocusNode focusNode,
+  VoidCallback onFieldSubmitted,
+);
+
+/// The type of the [AutoLabelInput] callback
+/// which computes the value of label
+/// for the widget's field based on the text the user has entered so far.
+///
+/// See also:
+///
+///   * [AutoLabelInput.valueBuilder], which is of this type.
+typedef ValueBuilder<T> = T Function(String textEditingValue);
+
+/// The type of the [AutoLabelInput] callback that converts an option value to
+/// a string which can be displayed in the widget's options menu.
+///
+/// See also:
+///
+///   * [AutoLabelInput.displayStringForOption], which is of this type.
+typedef OptionToString<T> = String Function(T option);
+
+typedef OnChanged<T> = void Function(Iterable<T> values);
 
 class AutoLabelInputController<T> extends ChangeNotifier {
   AutoLabelInputController({
@@ -43,18 +135,18 @@ class AutoLabelInputController<T> extends ChangeNotifier {
 
   final List<T> source;
   final List<T> values;
-  final List<T> suggestions = [];
+  final List<T> options = [];
 
-  int selectSuggestionIndex = none;
+  int selectOptionIndex = none;
 
-  bool get isSelectSuggestion => none != selectSuggestionIndex;
+  bool get isSelectOption => none != selectOptionIndex;
 
-  T? get selectSuggestion =>
-      none == selectSuggestionIndex ? null : suggestions[selectSuggestionIndex];
+  T? get selectOption =>
+      none == selectOptionIndex ? null : options[selectOptionIndex];
 
   void add(T value) {
     values.add(value);
-    selectSuggestionIndex = none;
+    selectOptionIndex = none;
     notifyListeners();
   }
 
@@ -73,74 +165,201 @@ class AutoLabelInputController<T> extends ChangeNotifier {
     notifyListeners();
   }
 
-  void upSuggestion() {
-    selectSuggestionIndex--;
-    if (selectSuggestionIndex < 0) {
-      selectSuggestionIndex = suggestions.length - 1;
+  void upOption() {
+    selectOptionIndex--;
+    if (selectOptionIndex < 0) {
+      selectOptionIndex = options.length - 1;
     }
   }
 
-  void downSuggestion() {
-    selectSuggestionIndex++;
-    if (suggestions.length <= selectSuggestionIndex) {
-      selectSuggestionIndex = 0;
+  void downOption() {
+    selectOptionIndex++;
+    if (options.length <= selectOptionIndex) {
+      selectOptionIndex = 0;
     }
   }
 
-  void cancelSuggestion() {
-    selectSuggestionIndex = none;
+  void cancelOption() {
+    selectOptionIndex = none;
   }
 }
 
 class AutoLabelInput<T> extends StatefulWidget {
-  final ValueBuild? valueBuild;
-  final ValueBoxBuild? valueBoxBuild;
-  final SuggestionBuild? suggestionBuild;
-  final SuggestionBoxBuild? suggestionBoxBuild;
+  final ValueViewBuilder valueViewBuilder;
+  final ValueBoxBuilder valueBoxBuilder;
+  final OptionViewBuilder optionViewBuilder;
+  final OptionBoxBuilder optionBoxBuilder;
+  final FieldViewBuilder fieldViewBuilder;
 
   final AutoLabelInputController autoLabelInputController;
   final TextEditingController textEditingController;
-  final ValueMatch? onValueMatch;
-  final ValueAdder? onValueAdder;
 
-  final InputDecoration? textFieldDecoration;
-  final EdgeInsetsGeometry? textFieldPadding;
-  final TextStyle? textFieldStyle;
-  final StrutStyle? textFieldStrutStyle;
-  final String hintText;
-  final bool autofocus;
+  final OptionsBuilder? optionsBuilder;
+  final ValueBuilder valueBuilder;
+  final OptionToString displayStringForOption;
+
   final FocusNode focusNode;
   final OnChanged? onChanged;
-  final double minSuggestionBoxHeight;
 
-  final bool autoSuggestionHide;
+  final double minOptionBoxHeight;
+  final bool autoOptionHide;
+  final VerticalDirection? optionBoxDirection;
 
   AutoLabelInput({
     Key? key,
-    this.valueBuild,
-    this.valueBoxBuild,
-    this.suggestionBuild,
-    this.suggestionBoxBuild,
+    this.valueViewBuilder = defaultValueViewBuilder,
+    this.valueBoxBuilder = defaultValueBoxBuilder,
+    this.optionViewBuilder = defaultOptionViewBuilder,
+    this.optionBoxBuilder = defaultOptionBoxBuild,
+    this.fieldViewBuilder = defaultFieldViewBuilder,
     AutoLabelInputController? autoLabelInputController,
     TextEditingController? textEditingController,
-    this.onValueMatch,
-    this.onValueAdder,
-    this.textFieldDecoration,
-    this.textFieldPadding,
-    this.textFieldStyle,
-    this.textFieldStrutStyle,
-    this.hintText = "Add a label",
-    this.autofocus = false,
+    this.optionsBuilder,
+    this.valueBuilder = defaultValueBuilder,
     FocusNode? focusNode,
     this.onChanged,
-    this.minSuggestionBoxHeight = 100,
-    this.autoSuggestionHide = false,
+    this.minOptionBoxHeight = 100,
+    this.autoOptionHide = false,
+    this.displayStringForOption = defaultStringForOption,
+    this.optionBoxDirection,
   })  : this.focusNode = focusNode ?? FocusNode(),
         this.autoLabelInputController =
             autoLabelInputController ?? AutoLabelInputController(),
         this.textEditingController =
             textEditingController ?? TextEditingController(),
         super(key: key);
+  static const defaultFontSize = 16.0;
+
+  static Widget defaultValueViewBuilder(BuildContext context,
+      ValueOnDeleted onDeleted, int index, dynamic value) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => onDeleted(index),
+      child: Padding(
+        padding: EdgeInsets.all(5),
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(value.toString(), style: TextStyle(fontSize: defaultFontSize)),
+            Icon(
+              Icons.close,
+              size: defaultFontSize,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget defaultValueBoxBuilder(
+    BuildContext context,
+    ValueOnDeleted onDeleted,
+    ValueViewBuilder valueViewBuilder,
+    Widget textField,
+    Iterable<dynamic> values,
+  ) {
+    List<Widget> valueItems = [];
+    for (var i = 0; i < values.length; i++) {
+      var value = values.elementAt(i);
+      valueItems.add(valueViewBuilder(context, onDeleted, i, value));
+    }
+    valueItems.add(textField);
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(0, 0, 0, 3),
+      decoration: const BoxDecoration(
+        border: Border(
+            bottom: BorderSide(
+          color: Colors.grey,
+          width: 1.0,
+          style: BorderStyle.solid,
+        )),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 3,
+        alignment: WrapAlignment.start,
+        runAlignment: WrapAlignment.end,
+        textDirection: TextDirection.ltr,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: valueItems,
+      ),
+    );
+  }
+
+  static Widget defaultOptionViewBuilder(BuildContext context,
+      OnSelected onSelected, int index, dynamic option, bool isHighlight) {
+    return InkWell(
+      onTap: () => onSelected(index),
+      child: Container(
+        padding: EdgeInsets.all(10.0),
+        color: isHighlight ? Colors.grey[350] : null,
+        child: Text(option.toString()),
+      ),
+    );
+  }
+
+  static Widget defaultOptionBoxBuild(
+    BuildContext context,
+    OnSelected onSelected,
+    OptionViewBuilder optionViewBuilder,
+    Iterable<dynamic> options,
+    int highlightIndex,
+    AxisDirection boxDirection,
+  ) {
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      itemCount: options.length,
+      itemBuilder: (context, index) {
+        return optionViewBuilder(context, onSelected, index,
+            options.elementAt(index), highlightIndex == index);
+      },
+    );
+  }
+
+  static Widget defaultFieldViewBuilder(
+    BuildContext context,
+    TextEditingController textEditingController,
+    FocusNode focusNode,
+    VoidCallback onFieldSubmitted,
+  ) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: 68),
+      child: DryIntrinsicWidth(
+        child: Padding(
+          padding: EdgeInsets.all(5),
+          child: TextField(
+            focusNode: focusNode,
+            style: TextStyle(fontSize: AutoLabelInput.defaultFontSize),
+            strutStyle: StrutStyle(height: 1.0),
+            decoration: InputDecoration(
+              contentPadding: EdgeInsets.zero,
+              isDense: true,
+              border: InputBorder.none,
+              hintText: "Write label",
+            ),
+            autofocus: true,
+            controller: textEditingController,
+            textInputAction: TextInputAction.next,
+            onEditingComplete: onFieldSubmitted,
+          ),
+        ),
+      ),
+    );
+  }
+
+  static dynamic defaultValueBuilder(String value) {
+    return value.trim();
+  }
+
+  /// The default way to convert an option to a string in
+  /// [displayStringForOption].
+  ///
+  /// Simply uses the `toString` method on the option.
+  static String defaultStringForOption(dynamic option) {
+    return option.toString().trim();
+  }
 
   @override
   State<StatefulWidget> createState() {
@@ -149,8 +368,6 @@ class AutoLabelInput<T> extends StatefulWidget {
 }
 
 class _AutoLabelInputState<T> extends State<AutoLabelInput> {
-  static const defaultFontSize = 16.0;
-
   final LayerLink _layerLink = LayerLink();
   late OverlayEntry? _overlayEntry;
 
@@ -161,41 +378,25 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
   late OffsetDetectorController _offsetDetectorController;
 
-  late InputDecoration _textFieldDecoration;
-  late EdgeInsetsGeometry _textFieldPadding;
-  late TextStyle _textFieldStyle;
-  late StrutStyle? _textFieldStrutStyle;
-
   bool isOpened = false;
-  bool _isSelectSuggestion = false;
+  bool _isSelectOption = false;
+  GlobalKey _textFieldKey = GlobalKey();
 
-  double get _courseHeight =>
-      // final line height of fontSize * (height + leading) + padding.vertical logical pixels.
-      (_textFieldStrutStyle != null
-          ? (_textFieldStrutStyle!.fontSize ??
-                  _textFieldStyle.fontSize ??
-                  defaultFontSize) *
-              ((_textFieldStrutStyle!.height ?? 1.0) +
-                  (_textFieldStrutStyle!.leading ?? 1.0))
-          : (_textFieldStyle.fontSize ?? defaultFontSize)) +
-      (_textFieldDecoration.contentPadding?.vertical ?? 0) +
-      _textFieldPadding.vertical;
-
-  void _openSuggestionBox() {
+  void _openOptionBox() {
     if (this.isOpened) return;
     assert(this._overlayEntry != null);
     Overlay.of(context)!.insert(this._overlayEntry!);
     this.isOpened = true;
   }
 
-  void _closeSuggestionBox() {
+  void _closeOptionBox() {
     if (!this.isOpened) return;
     assert(this._overlayEntry != null);
     this._overlayEntry!.remove();
     this.isOpened = false;
   }
 
-  void _updateSuggestionBox() {
+  void _updateOptionBox() {
     if (!this.isOpened) return;
     assert(this._overlayEntry != null);
     this._overlayEntry!.markNeedsBuild();
@@ -205,22 +406,10 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   void initState() {
     super.initState();
 
-    _textFieldDecoration = widget.textFieldDecoration ??
-        InputDecoration(
-          contentPadding: EdgeInsets.zero,
-          isDense: true,
-          border: InputBorder.none,
-          hintText: widget.hintText,
-        );
-    _textFieldPadding = widget.textFieldPadding ?? EdgeInsets.all(5);
-    _textFieldStyle =
-        widget.textFieldStyle ?? TextStyle(fontSize: defaultFontSize);
-    _textFieldStrutStyle =
-        widget.textFieldStrutStyle ?? StrutStyle(height: 1.0);
-
     widget.autoLabelInputController.addListener(_handleValuesChanged);
+    widget.textEditingController.addListener(_handleTextChanged);
     _offsetDetectorController = OffsetDetectorController();
-    WidgetsBinding.instance!.addPostFrameCallback((duration) {
+    SchedulerBinding.instance!.addPostFrameCallback((duration) {
       if (mounted) {
         _overlayEntry = _createOverlayEntry();
       }
@@ -240,12 +429,20 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
       oldWidget.autoLabelInputController.removeListener(_handleValuesChanged);
       widget.autoLabelInputController.addListener(_handleValuesChanged);
     }
+    if (widget.textEditingController != oldWidget.textEditingController) {
+      oldWidget.textEditingController.removeListener(_handleTextChanged);
+      widget.textEditingController.addListener(_handleTextChanged);
+    }
+    SchedulerBinding.instance!.addPostFrameCallback((Duration _) {
+      _updateOptionBox();
+    });
   }
 
   @override
   void dispose() {
     super.dispose();
     widget.autoLabelInputController.removeListener(_handleValuesChanged);
+    widget.textEditingController.removeListener(_handleTextChanged);
     widget.focusNode.removeListener(_handleFocusChanged);
     _detachKeyboardIfAttached();
   }
@@ -253,20 +450,23 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   OverlayEntry _createOverlayEntry() {
     return OverlayEntry(
       builder: (context) {
-        final suggestionsBox = Material(
+        final optionsBox = Material(
           elevation: 2.0,
           child: ConstrainedBox(
             constraints: BoxConstraints(
               maxHeight: _overlayEntryHeight,
             ),
-            child: widget.suggestionBoxBuild != null
-                ? widget.suggestionBoxBuild!(
-                    context, widget.suggestionBuild ?? _suggestionBuild)
-                : _suggestionBoxBuild(
-                    context, widget.suggestionBuild ?? _suggestionBuild),
+            child: widget.optionBoxBuilder(
+              context,
+              _onSelected,
+              widget.optionViewBuilder,
+              widget.autoLabelInputController.options,
+              widget.autoLabelInputController.selectOptionIndex,
+              _overlayEntryDir,
+            ),
           ),
         );
-        final suggestionsBoxPositioned = Positioned(
+        final optionsBoxPositioned = Positioned(
             width: _overlayEntryWidth,
             child: CompositedTransformFollower(
               link: _layerLink,
@@ -276,56 +476,33 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
                   : Alignment.bottomLeft,
               targetAnchor: Alignment.bottomLeft,
               offset: Offset(0.0, _overlayEntryY),
-              child: suggestionsBox,
+              child: optionsBox,
             ));
-        return widget.autoSuggestionHide
+        return widget.autoOptionHide
             ? Stack(
                 children: <Widget>[
                   Positioned.fill(
                     child: GestureDetector(
-                      onTap: () => _closeSuggestionBox(),
+                      onTap: () => _closeOptionBox(),
                       child: Container(
                         color: Colors.transparent,
                       ),
                     ),
                   ),
-                  suggestionsBoxPositioned,
+                  optionsBoxPositioned,
                 ],
               )
-            : suggestionsBoxPositioned;
+            : optionsBoxPositioned;
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> valueItems = [];
-    for (var i = 0; i < widget.autoLabelInputController.values.length; i++) {
-      valueItems.add((widget.valueBuild ?? _valueBuild)(context, i));
-    }
-
-    valueItems.add(ConstrainedBox(
-      constraints: BoxConstraints(minWidth: 68),
-      child: DryIntrinsicWidth(
-        child: Padding(
-          padding: _textFieldPadding,
-          child: TextField(
-            focusNode: widget.focusNode,
-            style: _textFieldStyle,
-            strutStyle: _textFieldStrutStyle,
-            decoration: _textFieldDecoration,
-            autofocus: widget.autofocus,
-            controller: widget.textEditingController,
-            textInputAction: TextInputAction.next,
-            onChanged: _onInputChanged,
-            onEditingComplete: () {
-              _onEditingComplete();
-              FocusScope.of(context).requestFocus();
-            },
-          ),
-        ),
-      ),
-    ));
+    Widget textField = widget.fieldViewBuilder(
+        context, widget.textEditingController, widget.focusNode, () {
+      _onEditingComplete();
+    });
 
     return CompositedTransformTarget(
       link: _layerLink,
@@ -338,176 +515,132 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
           controller: _offsetDetectorController,
           onChanged: _onBoxOffsetChanged,
           onKeyboard: _onKeyboardState,
-          child: widget.valueBoxBuild != null
-              ? widget.valueBoxBuild!(context, valueItems)
-              : _valueBoxBuild(context, valueItems),
-        ),
-      ),
-    );
-  }
-
-  Widget _valueBuild(BuildContext context, int index) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () => widget.autoLabelInputController.removeIndex(index),
-      child: Padding(
-        padding: EdgeInsets.all(5),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(widget.autoLabelInputController.values[index].toString(),
-                style: TextStyle(fontSize: defaultFontSize)),
-            Icon(
-              Icons.close,
-              size: defaultFontSize,
+          child: widget.valueBoxBuilder(
+            context,
+            _onDeleted,
+            widget.valueViewBuilder,
+            Container(
+              key: _textFieldKey,
+              child: textField,
             ),
-          ],
+            widget.autoLabelInputController.values,
+          ),
         ),
       ),
     );
   }
 
-  Widget _valueBoxBuild(BuildContext context, List<Widget> children) {
-    return Container(
-      padding: EdgeInsets.fromLTRB(0, 0, 0, 3),
-      decoration: const BoxDecoration(
-        border: Border(
-            bottom: BorderSide(
-          color: Colors.grey,
-          width: 1.0,
-          style: BorderStyle.solid,
-        )),
-      ),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 3,
-        alignment: WrapAlignment.start,
-        runAlignment: WrapAlignment.end,
-        textDirection: TextDirection.ltr,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: children,
-      ),
-    );
+  void _onDeleted(int index) {
+    widget.autoLabelInputController.removeIndex(index);
   }
 
-  Widget _suggestionBuild(BuildContext context, int index) {
-    return Container(
-      padding: EdgeInsets.all(10.0),
-      color: widget.autoLabelInputController.selectSuggestionIndex == index
-          ? Colors.grey[350]
-          : null,
-      child:
-          Text(widget.autoLabelInputController.suggestions[index].toString()),
-    );
-  }
-
-  Widget _suggestionBoxBuild(
-      BuildContext context, SuggestionBuild suggestionBuild) {
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      reverse: _overlayEntryDir != AxisDirection.down,
-      itemCount: widget.autoLabelInputController.suggestions.length,
-      itemBuilder: (context, index) {
-        return InkWell(
-          onTap: () => widget.autoLabelInputController
-              .add(widget.autoLabelInputController.suggestions[index]),
-          child: suggestionBuild(context, index),
-        );
-      },
-    );
+  void _onSelected(int index) {
+    widget.autoLabelInputController
+        .add(widget.autoLabelInputController.options[index]);
   }
 
   void _onBoxOffsetChanged(
       Size size, EdgeInsets offset, EdgeInsets rootPadding) {
-    var cursorOffsetTop = offset.top + size.height - _courseHeight;
+    RenderBox? box =
+        _textFieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || box.hasSize == false) {
+      return;
+    }
+
+    double textFieldHeight = box.size.height;
+    double cursorOffsetTop = offset.top + size.height - textFieldHeight;
 
     // print("cursorOffsetTop: $cursorOffsetTop, _courseHeight: $_courseHeight");
-    if (widget.minSuggestionBoxHeight < offset.bottom ||
-        cursorOffsetTop < offset.bottom) {
+    if (widget.optionBoxDirection == VerticalDirection.down ||
+        (widget.optionBoxDirection == null &&
+            (widget.minOptionBoxHeight < offset.bottom ||
+                cursorOffsetTop < offset.bottom))) {
       _overlayEntryHeight = offset.bottom - 5.0;
       _overlayEntryY = 1.0;
       _overlayEntryDir = AxisDirection.down;
     } else {
       _overlayEntryHeight = cursorOffsetTop - 5.0;
-      _overlayEntryY = -_courseHeight - 1.0;
+      _overlayEntryY = -textFieldHeight - 1.0;
       _overlayEntryDir = AxisDirection.up;
     }
 
     _overlayEntryWidth = size.width;
 
-    _updateSuggestionBox();
+    _updateOptionBox();
   }
 
   bool _valueMatch(String text, T value) {
-    return value.toString().toLowerCase().contains(text.trim().toLowerCase());
+    return widget
+        .displayStringForOption(value)
+        .toLowerCase()
+        .contains(text.trim().toLowerCase());
   }
 
-  void _onInputChanged(String value) {
-    if (_isSelectSuggestion) {
-      _isSelectSuggestion = false;
+  void _handleTextChanged() {
+    if (_isSelectOption) {
+      _isSelectOption = false;
       return;
     }
 
-    widget.autoLabelInputController.suggestions.clear();
-    widget.autoLabelInputController.cancelSuggestion();
+    widget.autoLabelInputController.options.clear();
+    widget.autoLabelInputController.cancelOption();
+
+    String value = widget.textEditingController.text;
 
     if (value == "") {
-      _closeSuggestionBox();
+      _closeOptionBox();
       return;
     }
 
     final lastChar = value.substring(value.length - 1);
     if (lastChar == '\n' || lastChar == "," || lastChar == "，") {
-      _onAddLabel(widget.onValueAdder != null
-          ? widget.onValueAdder!(widget.textEditingController.text)
-          : value.substring(0, value.length - 1).trim());
+      _onAddLabel(widget.valueBuilder(value.substring(0, value.length - 1)));
       return;
     }
 
-    if (widget.onValueMatch != null) {
-      widget.onValueMatch!(value);
+    if (widget.optionsBuilder != null) {
+      widget.optionsBuilder!(value);
     } else {
       for (int i = 0; i < widget.autoLabelInputController.source.length; i++) {
         var item = widget.autoLabelInputController.source[i];
         if (_valueMatch(value, item) &&
             !widget.autoLabelInputController.values.contains(item)) {
-          widget.autoLabelInputController.suggestions.add(item);
+          widget.autoLabelInputController.options.add(item);
         }
       }
     }
 
-    if (0 < widget.autoLabelInputController.suggestions.length) {
-      _openSuggestionBox();
+    if (0 < widget.autoLabelInputController.options.length) {
+      _openOptionBox();
       _offsetDetectorController.notifyStateChanged();
     }
   }
 
   void _onEditingComplete() {
-    if (widget.autoLabelInputController.isSelectSuggestion) {
-      _onAddLabel(widget.autoLabelInputController.selectSuggestion);
-    } else if (widget.textEditingController.text.isNotEmpty)
-      _onAddLabel(widget.onValueAdder != null
-          ? widget.onValueAdder!(widget.textEditingController.text)
-          : widget.textEditingController.text.trim());
+    if (widget.autoLabelInputController.isSelectOption) {
+      _onAddLabel(widget.autoLabelInputController.selectOption);
+    } else if (widget.textEditingController.text.isNotEmpty) {
+      _onAddLabel(widget.valueBuilder(widget.textEditingController.text));
+    }
+    FocusScope.of(context).requestFocus(widget.focusNode);
   }
 
   void _onAddLabel(T value) {
-    _closeSuggestionBox();
+    _closeOptionBox();
     widget.autoLabelInputController.add(value);
     widget.textEditingController.text = "";
   }
 
-  void _selectSuggestion() {
-    _isSelectSuggestion = true;
-    final suggestionText =
-        widget.autoLabelInputController.selectSuggestion.toString();
+  void _selectOption() {
+    _isSelectOption = true;
+    final optionText = widget
+        .displayStringForOption(widget.autoLabelInputController.selectOption);
     widget.textEditingController.value = TextEditingValue(
-      text: suggestionText,
-      selection: TextSelection.collapsed(offset: suggestionText.length),
+      text: optionText,
+      selection: TextSelection.collapsed(offset: optionText.length),
     );
 
-    _updateSuggestionBox();
+    _updateOptionBox();
   }
 
   void _onKeyEvent(RawKeyEvent value) {
@@ -523,11 +656,11 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
       widget.autoLabelInputController.removeLast();
     } else if (value.logicalKey == LogicalKeyboardKey.escape) {
       if (!isOpened) return;
-      if (widget.autoLabelInputController.selectSuggestionIndex ==
+      if (widget.autoLabelInputController.selectOptionIndex ==
           AutoLabelInputController.none) {
-        _closeSuggestionBox();
+        _closeOptionBox();
       } else {
-        widget.autoLabelInputController.cancelSuggestion();
+        widget.autoLabelInputController.cancelOption();
         assert(_overlayEntry != null);
         _overlayEntry!.markNeedsBuild();
       }
@@ -539,12 +672,12 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
     if (value.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (!isOpened) return;
-      widget.autoLabelInputController.upSuggestion();
-      _selectSuggestion();
+      widget.autoLabelInputController.upOption();
+      _selectOption();
     } else if (value.logicalKey == LogicalKeyboardKey.arrowDown) {
       if (!isOpened) return;
-      widget.autoLabelInputController.downSuggestion();
-      _selectSuggestion();
+      widget.autoLabelInputController.downOption();
+      _selectOption();
     }
   }
 
@@ -577,7 +710,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
   void _handleValuesChanged() {
     if (!mounted) return;
-    _closeSuggestionBox();
+    _closeOptionBox();
     setState(() {});
     if (widget.onChanged != null) {
       widget.onChanged!(widget.autoLabelInputController.values);
@@ -587,9 +720,9 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   }
 
   void _onKeyboardState(bool state) {
-    if (widget.autoSuggestionHide && !state) {
+    if (widget.autoOptionHide && !state) {
       widget.focusNode.unfocus();
-      _closeSuggestionBox();
+      _closeOptionBox();
     }
   }
 }
