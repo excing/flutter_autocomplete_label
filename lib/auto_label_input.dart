@@ -569,11 +569,20 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
     _updateOptionBox();
   }
 
-  bool _valueMatch(String text, T value) {
-    return widget
-        .displayStringForOption(value)
-        .toLowerCase()
-        .contains(text.trim().toLowerCase());
+  Iterable<T> _optionsBuilder(String text) {
+    List<T> options = [];
+    for (int i = 0; i < widget.autoLabelInputController.source.length; i++) {
+      var item = widget.autoLabelInputController.source[i];
+      if (widget
+              .displayStringForOption(item)
+              .toLowerCase()
+              .contains(text.trim().toLowerCase()) &&
+          !widget.autoLabelInputController.values.contains(item)) {
+        options.add(item);
+      }
+    }
+
+    return options;
   }
 
   void _handleTextChanged() {
@@ -599,15 +608,10 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
     }
 
     if (widget.optionsBuilder != null) {
-      widget.optionsBuilder!(value);
+      widget.autoLabelInputController.options
+          .addAll(widget.optionsBuilder!(value));
     } else {
-      for (int i = 0; i < widget.autoLabelInputController.source.length; i++) {
-        var item = widget.autoLabelInputController.source[i];
-        if (_valueMatch(value, item) &&
-            !widget.autoLabelInputController.values.contains(item)) {
-          widget.autoLabelInputController.options.add(item);
-        }
-      }
+      widget.autoLabelInputController.options.addAll(_optionsBuilder(value));
     }
 
     if (0 < widget.autoLabelInputController.options.length) {
