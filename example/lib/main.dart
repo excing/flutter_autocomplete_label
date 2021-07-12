@@ -61,6 +61,8 @@ class _MyHomePageState extends State<MyHomePage> {
     "youtube",
   ]);
 
+  bool _autoSuggestionHide = false;
+
   @override
   void dispose() {
     _autoLabelInputController.dispose();
@@ -72,6 +74,16 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: [
+          Switch(
+            value: _autoSuggestionHide,
+            onChanged: (value) {
+              setState(() {
+                _autoSuggestionHide = value;
+              });
+            },
+          )
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(8.0),
@@ -81,6 +93,8 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 flex: 1,
                 child: AutoLabelInput<String>(
+                  autoSuggestionHide: _autoSuggestionHide,
+                  onChanged: (labels) => print("$labels"),
                   autoLabelInputController: _autoLabelInputController,
                 ),
               ),
