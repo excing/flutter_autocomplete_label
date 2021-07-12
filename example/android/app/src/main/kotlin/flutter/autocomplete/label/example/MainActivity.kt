@@ -1,4 +1,4 @@
-package flutter.auto.label.input.example
+package flutter.autocomplete.label.example
 
 import io.flutter.embedding.android.FlutterActivity
 

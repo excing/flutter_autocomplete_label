@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A example of auto_label_input",
+    "description": "A example of flutter_autocomplete_label",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -1,6 +1,6 @@
 # example
 
-A example of auto_label_input
+A example of flutter_autocomplete_label
 
 ## Getting Started
 

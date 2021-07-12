@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_auto_label_input/auto_label_input.dart';
+import 'package:flutter_autocomplete_label/autocomplete_label.dart';
 
 void main() {
   runApp(MyApp());
@@ -11,11 +11,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'AutoLabelInput Example',
+      title: 'AutocompleteLabel Example',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'AutoLabelInput Example Home Page'),
+      home: MyHomePage(title: 'AutocompleteLabel Example Home Page'),
     );
   }
 }
@@ -30,8 +30,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final AutoLabelInputController _autoLabelInputController =
-      AutoLabelInputController<String>(source: [
+  final AutocompleteLabelController _autocompleteLabelController =
+  AutocompleteLabelController<String>(source: [
     "Android",
     "iOS",
     "Flutter",
@@ -66,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _autoLabelInputController.dispose();
+    _autocompleteLabelController.dispose();
     super.dispose();
   }
 
@@ -93,11 +93,10 @@ class _MyHomePageState extends State<MyHomePage> {
             children: [
               Expanded(
                 flex: 1,
-                child: AutoLabelInput<String>(
+                child: AutocompleteLabel<String>(
                   autoOptionHide: _autoOptionHide,
                   onChanged: (values) => print("$values"),
-                  autoLabelInputController: _autoLabelInputController,
-                  optionBoxDirection: VerticalDirection.up,
+                  autocompleteLabelController: _autocompleteLabelController,
                 ),
               ),
             ],

@@ -62,13 +62,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_auto_label_input:
+  flutter_autocomplete_label:
     dependency: "direct main"
     description:
       path: ".."
       relative: true
     source: path
-    version: "1.0.0"
+    version: "0.0.1"
   flutter_test:
     dependency: "direct dev"
     description: flutter

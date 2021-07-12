@@ -1,4 +1,4 @@
-library flutter_auto_label_input;
+library flutter_autocomplete_label;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -8,14 +8,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_widget_offset/flutter_widget_offset.dart';
 
-/// The type of [AutoLabelInput] callback,
+/// The type of [AutocompleteLabel] callback,
 /// which returns a widget that displays the specified label.
 ///
-/// The label can be obtained in the [AutoLabelInputController.values] attribute.
+/// The label can be obtained in the [AutocompleteLabelController.values] attribute.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.valueViewBuilder], which is of this type.
+///   * [AutocompleteLabel.valueViewBuilder], which is of this type.
 typedef ValueViewBuilder<T> = Widget Function(
   BuildContext context,
   ValueOnDeleted onDeleted,
@@ -23,13 +23,13 @@ typedef ValueViewBuilder<T> = Widget Function(
   T value,
 );
 
-/// The type of [AutoLabelInput] callback.
+/// The type of [AutocompleteLabel] callback.
 /// It returns a widget that wraps all labels and input boxes [textField],
 /// and can call [valueViewBuilder] to create a label widget.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.valueBoxBuilder], which is of this type.
+///   * [AutocompleteLabel.valueBoxBuilder], which is of this type.
 typedef ValueBoxBuilder<T> = Widget Function(
   BuildContext context,
   ValueOnDeleted onDeleted,
@@ -38,20 +38,20 @@ typedef ValueBoxBuilder<T> = Widget Function(
   Iterable<T> values,
 );
 
-/// The type of the callback used by the [AutoLabelInput] widget to indicate
+/// The type of the callback used by the [AutocompleteLabel] widget to indicate
 /// that the user has deleted an entered label.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.onDeleted], which is of this type.
+///   * [AutocompleteLabel.onDeleted], which is of this type.
 typedef ValueOnDeleted = void Function(int index);
 
-/// The type of [AutoLabelInput] callback,
+/// The type of [AutocompleteLabel] callback,
 /// which returns a widget that displays the specified option.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.optionViewBuilder], which is of this type.
+///   * [AutocompleteLabel.optionViewBuilder], which is of this type.
 typedef OptionViewBuilder<T> = Widget Function(
   BuildContext context,
   OnSelected onSelected,
@@ -60,12 +60,12 @@ typedef OptionViewBuilder<T> = Widget Function(
   bool isHighlight,
 );
 
-/// The type of [AutoLabelInput] callback,
+/// The type of [AutocompleteLabel] callback,
 /// which returns a widget that wraps all options.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.optionBoxBuilder], which is of this type.
+///   * [AutocompleteLabel.optionBoxBuilder], which is of this type.
 typedef OptionBoxBuilder<T> = Widget Function(
   BuildContext context,
   OnSelected onSelected,
@@ -75,21 +75,21 @@ typedef OptionBoxBuilder<T> = Widget Function(
   AxisDirection boxDirection,
 );
 
-/// The type of the callback used by the [AutoLabelInput] widget to indicate
+/// The type of the callback used by the [AutocompleteLabel] widget to indicate
 /// that the user has selected an option.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.onSelected], which is of this type.
+///   * [AutocompleteLabel.onSelected], which is of this type.
 typedef OnSelected<T extends Object> = void Function(int index);
 
-/// The type of the [AutoLabelInput] callback
+/// The type of the [AutocompleteLabel] callback
 /// which computes the list of optional completions
 /// for the widget's field based on the text the user has entered so far.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.optionsBuilder], which is of this type.
+///   * [AutocompleteLabel.optionsBuilder], which is of this type.
 typedef OptionsBuilder<T> = Iterable<T> Function(String text);
 
 /// The type of the Autocomplete callback which returns the widget that
@@ -97,7 +97,7 @@ typedef OptionsBuilder<T> = Iterable<T> Function(String text);
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.fieldViewBuilder], which is of this type.
+///   * [AutocompleteLabel.fieldViewBuilder], which is of this type.
 typedef FieldViewBuilder = Widget Function(
   BuildContext context,
   TextEditingController textEditingController,
@@ -105,34 +105,34 @@ typedef FieldViewBuilder = Widget Function(
   VoidCallback onFieldSubmitted,
 );
 
-/// The type of the [AutoLabelInput] callback
+/// The type of the [AutocompleteLabel] callback
 /// which computes the value of label
 /// for the widget's field based on the text the user has entered so far.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.valueBuilder], which is of this type.
+///   * [AutocompleteLabel.valueBuilder], which is of this type.
 typedef ValueBuilder<T> = T Function(String text);
 
-/// The type of the [AutoLabelInput] callback that converts an option value to
+/// The type of the [AutocompleteLabel] callback that converts an option value to
 /// a string which can be displayed in the widget's options menu.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.displayStringForOption], which is of this type.
+///   * [AutocompleteLabel.displayStringForOption], which is of this type.
 typedef OptionToString<T> = String Function(T option);
 
-/// The type of the callback used by the [AutoLabelInput] widget to indicate
+/// The type of the callback used by the [AutocompleteLabel] widget to indicate
 /// that the values has changed.
 ///
 /// See also:
 ///
-///   * [AutoLabelInput.onChanged], which is of this type.
+///   * [AutocompleteLabel.onChanged], which is of this type.
 typedef OnChanged<T> = void Function(Iterable<T> values);
 
 /// A controller for an editable autocomplete label field.
-class AutoLabelInputController<T> extends ChangeNotifier {
-  AutoLabelInputController({
+class AutocompleteLabelController<T> extends ChangeNotifier {
+  AutocompleteLabelController({
     List<T>? source,
     List<T>? values,
   })  : this.source = source ?? [],
@@ -191,14 +191,14 @@ class AutoLabelInputController<T> extends ChangeNotifier {
   }
 }
 
-class AutoLabelInput<T> extends StatefulWidget {
+class AutocompleteLabel<T> extends StatefulWidget {
   final ValueViewBuilder valueViewBuilder;
   final ValueBoxBuilder valueBoxBuilder;
   final OptionViewBuilder optionViewBuilder;
   final OptionBoxBuilder optionBoxBuilder;
   final FieldViewBuilder fieldViewBuilder;
 
-  final AutoLabelInputController autoLabelInputController;
+  final AutocompleteLabelController autocompleteLabelController;
   final TextEditingController textEditingController;
 
   final OptionsBuilder? optionsBuilder;
@@ -212,14 +212,14 @@ class AutoLabelInput<T> extends StatefulWidget {
   final bool autoOptionHide;
   final VerticalDirection? optionBoxDirection;
 
-  AutoLabelInput({
+  AutocompleteLabel({
     Key? key,
     this.valueViewBuilder = defaultValueViewBuilder,
     this.valueBoxBuilder = defaultValueBoxBuilder,
     this.optionViewBuilder = defaultOptionViewBuilder,
     this.optionBoxBuilder = defaultOptionBoxBuild,
     this.fieldViewBuilder = defaultFieldViewBuilder,
-    AutoLabelInputController? autoLabelInputController,
+    AutocompleteLabelController? autocompleteLabelController,
     TextEditingController? textEditingController,
     this.optionsBuilder,
     this.valueBuilder = defaultValueBuilder,
@@ -230,8 +230,8 @@ class AutoLabelInput<T> extends StatefulWidget {
     this.displayStringForOption = defaultStringForOption,
     this.optionBoxDirection,
   })  : this.focusNode = focusNode ?? FocusNode(),
-        this.autoLabelInputController =
-            autoLabelInputController ?? AutoLabelInputController(),
+        this.autocompleteLabelController =
+            autocompleteLabelController ?? AutocompleteLabelController(),
         this.textEditingController =
             textEditingController ?? TextEditingController(),
         super(key: key);
@@ -338,7 +338,7 @@ class AutoLabelInput<T> extends StatefulWidget {
           padding: EdgeInsets.all(5),
           child: TextField(
             focusNode: focusNode,
-            style: TextStyle(fontSize: AutoLabelInput.defaultFontSize),
+            style: TextStyle(fontSize: AutocompleteLabel.defaultFontSize),
             strutStyle: StrutStyle(height: 1.0),
             decoration: InputDecoration(
               contentPadding: EdgeInsets.zero,
@@ -370,11 +370,11 @@ class AutoLabelInput<T> extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() {
-    return _AutoLabelInputState();
+    return _AutocompleteLabelState();
   }
 }
 
-class _AutoLabelInputState<T> extends State<AutoLabelInput> {
+class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
   final LayerLink _layerLink = LayerLink();
   late OverlayEntry? _overlayEntry;
 
@@ -413,7 +413,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   void initState() {
     super.initState();
 
-    widget.autoLabelInputController.addListener(_handleValuesChanged);
+    widget.autocompleteLabelController.addListener(_handleValuesChanged);
     widget.textEditingController.addListener(_handleTextChanged);
     _offsetDetectorController = OffsetDetectorController();
     SchedulerBinding.instance!.addPostFrameCallback((duration) {
@@ -426,15 +426,17 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   }
 
   @override
-  void didUpdateWidget(covariant AutoLabelInput oldWidget) {
+  void didUpdateWidget(covariant AutocompleteLabel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.focusNode != oldWidget.focusNode) {
       oldWidget.focusNode.removeListener(_handleFocusChanged);
       widget.focusNode.addListener(_handleFocusChanged);
     }
-    if (widget.autoLabelInputController != oldWidget.autoLabelInputController) {
-      oldWidget.autoLabelInputController.removeListener(_handleValuesChanged);
-      widget.autoLabelInputController.addListener(_handleValuesChanged);
+    if (widget.autocompleteLabelController !=
+        oldWidget.autocompleteLabelController) {
+      oldWidget.autocompleteLabelController
+          .removeListener(_handleValuesChanged);
+      widget.autocompleteLabelController.addListener(_handleValuesChanged);
     }
     if (widget.textEditingController != oldWidget.textEditingController) {
       oldWidget.textEditingController.removeListener(_handleTextChanged);
@@ -448,7 +450,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   @override
   void dispose() {
     super.dispose();
-    widget.autoLabelInputController.removeListener(_handleValuesChanged);
+    widget.autocompleteLabelController.removeListener(_handleValuesChanged);
     widget.textEditingController.removeListener(_handleTextChanged);
     widget.focusNode.removeListener(_handleFocusChanged);
     _detachKeyboardIfAttached();
@@ -467,8 +469,8 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
               context,
               _onSelected,
               widget.optionViewBuilder,
-              widget.autoLabelInputController.options,
-              widget.autoLabelInputController.selectOptionIndex,
+              widget.autocompleteLabelController.options,
+              widget.autocompleteLabelController.selectOptionIndex,
               _overlayEntryDir,
             ),
           ),
@@ -530,7 +532,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
               key: _textFieldKey,
               child: textField,
             ),
-            widget.autoLabelInputController.values,
+            widget.autocompleteLabelController.values,
           ),
         ),
       ),
@@ -538,12 +540,12 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   }
 
   void _onDeleted(int index) {
-    widget.autoLabelInputController.removeIndex(index);
+    widget.autocompleteLabelController.removeIndex(index);
   }
 
   void _onSelected(int index) {
-    widget.autoLabelInputController
-        .add(widget.autoLabelInputController.options[index]);
+    widget.autocompleteLabelController
+        .add(widget.autocompleteLabelController.options[index]);
   }
 
   void _onBoxOffsetChanged(
@@ -577,14 +579,14 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
   }
 
   void _handleOptionsBuilder(String text) {
-    for (int i = 0; i < widget.autoLabelInputController.source.length; i++) {
-      var item = widget.autoLabelInputController.source[i];
+    for (int i = 0; i < widget.autocompleteLabelController.source.length; i++) {
+      var item = widget.autocompleteLabelController.source[i];
       if (widget
               .displayStringForOption(item)
               .toLowerCase()
               .contains(text.trim().toLowerCase()) &&
-          !widget.autoLabelInputController.values.contains(item)) {
-        widget.autoLabelInputController.options.add(item);
+          !widget.autocompleteLabelController.values.contains(item)) {
+        widget.autocompleteLabelController.options.add(item);
       }
     }
   }
@@ -595,8 +597,8 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
       return;
     }
 
-    widget.autoLabelInputController.options.clear();
-    widget.autoLabelInputController.cancelOption();
+    widget.autocompleteLabelController.options.clear();
+    widget.autocompleteLabelController.cancelOption();
 
     String value = widget.textEditingController.text;
 
@@ -612,21 +614,21 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
     }
 
     if (widget.optionsBuilder != null) {
-      widget.autoLabelInputController.options
+      widget.autocompleteLabelController.options
           .addAll(widget.optionsBuilder!(value));
     } else {
       _handleOptionsBuilder(value);
     }
 
-    if (0 < widget.autoLabelInputController.options.length) {
+    if (0 < widget.autocompleteLabelController.options.length) {
       _openOptionBox();
       _offsetDetectorController.notifyStateChanged();
     }
   }
 
   void _onEditingComplete() {
-    if (widget.autoLabelInputController.isSelectOption) {
-      _onAddLabel(widget.autoLabelInputController.selectOption);
+    if (widget.autocompleteLabelController.isSelectOption) {
+      _onAddLabel(widget.autocompleteLabelController.selectOption);
     } else if (widget.textEditingController.text.isNotEmpty) {
       _onAddLabel(widget.valueBuilder(widget.textEditingController.text));
     }
@@ -635,14 +637,14 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
   void _onAddLabel(T value) {
     _closeOptionBox();
-    widget.autoLabelInputController.add(value);
+    widget.autocompleteLabelController.add(value);
     widget.textEditingController.text = "";
   }
 
   void _selectOption() {
     _isSelectOption = true;
-    final optionText = widget
-        .displayStringForOption(widget.autoLabelInputController.selectOption);
+    final optionText = widget.displayStringForOption(
+        widget.autocompleteLabelController.selectOption);
     widget.textEditingController.value = TextEditingValue(
       text: optionText,
       selection: TextSelection.collapsed(offset: optionText.length),
@@ -661,14 +663,14 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
     if (widget.textEditingController.text == "" &&
         value.logicalKey == LogicalKeyboardKey.backspace) {
-      widget.autoLabelInputController.removeLast();
+      widget.autocompleteLabelController.removeLast();
     } else if (value.logicalKey == LogicalKeyboardKey.escape) {
       if (!isOpened) return;
-      if (widget.autoLabelInputController.selectOptionIndex ==
-          AutoLabelInputController.none) {
+      if (widget.autocompleteLabelController.selectOptionIndex ==
+          AutocompleteLabelController.none) {
         _closeOptionBox();
       } else {
-        widget.autoLabelInputController.cancelOption();
+        widget.autocompleteLabelController.cancelOption();
         assert(_overlayEntry != null);
         _overlayEntry!.markNeedsBuild();
       }
@@ -680,11 +682,11 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
 
     if (value.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (!isOpened) return;
-      widget.autoLabelInputController.upOption();
+      widget.autocompleteLabelController.upOption();
       _selectOption();
     } else if (value.logicalKey == LogicalKeyboardKey.arrowDown) {
       if (!isOpened) return;
-      widget.autoLabelInputController.downOption();
+      widget.autocompleteLabelController.downOption();
       _selectOption();
     }
   }
@@ -721,7 +723,7 @@ class _AutoLabelInputState<T> extends State<AutoLabelInput> {
     _closeOptionBox();
     setState(() {});
     if (widget.onChanged != null) {
-      widget.onChanged!(widget.autoLabelInputController.values);
+      widget.onChanged!(widget.autocompleteLabelController.values);
     }
     widget.textEditingController.text = "";
     _offsetDetectorController.notifyStateChanged();
