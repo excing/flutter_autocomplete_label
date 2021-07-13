@@ -1,6 +1,6 @@
 name: flutter_autocomplete_label
 description: A widget of highly customizable of editable autocomplete label (tag) field.
-version: 0.0.1
+version: 1.0.0
 homepage: https://github.com/excing/flutter_autocomplete_label
 
 environment:
