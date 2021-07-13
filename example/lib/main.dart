@@ -31,7 +31,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final AutocompleteLabelController _autocompleteLabelController =
-  AutocompleteLabelController<String>(source: [
+      AutocompleteLabelController<String>(source: [
     "Android",
     "iOS",
     "Flutter",
