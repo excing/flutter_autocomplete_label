@@ -131,87 +131,275 @@ typedef OptionToString<T> = String Function(T option);
 typedef OnChanged<T> = void Function(Iterable<T> values);
 
 /// A controller for an editable autocomplete label field.
+/// Whenever the user uses the associated [AutocompleteLabelController] to
+/// modify the label field,
+/// the label field will update [values]
+/// and the controller will notify its listener.
 class AutocompleteLabelController<T> extends ChangeNotifier {
   AutocompleteLabelController({
     List<T>? source,
     List<T>? values,
-  })  : this.source = source ?? [],
+  })  : this._source = source ?? [],
         this.values = values ?? [];
 
-  static const none = -1;
+  static const _none = -1;
 
-  final List<T> source;
+  /// The current values stored in this notifier.
+  ///
+  /// When the values is replaced with something that
+  /// is not equal to the old values as evaluated by
+  /// the equality operator ==, this class notifies its listeners.
+  ///
+  /// Call the public methods of [values] directly,
+  /// such as [List.add], [List.remove], etc.,
+  /// then this class will not notify its listeners.
   final List<T> values;
-  final List<T> options = [];
 
-  int selectOptionIndex = none;
-
-  bool get isSelectOption => none != selectOptionIndex;
-
-  T? get selectOption =>
-      none == selectOptionIndex ? null : options[selectOptionIndex];
-
-  void add(T value) {
-    values.add(value);
-    selectOptionIndex = none;
+  set values(List<T> newValues) {
+    if (values == newValues) return;
+    values = newValues;
     notifyListeners();
   }
 
+  final List<T> _source;
+  final List<T> _options = [];
+
+  int _selectOptionIndex = _none;
+
+  bool get _isSelectOption => _none != _selectOptionIndex;
+
+  T? get _selectOption =>
+      _none == _selectOptionIndex ? null : _options[_selectOptionIndex];
+
+  /// Add a [value] to [values] and this class notifies its listeners
+  void add(T value) {
+    values.add(value);
+    _selectOptionIndex = _none;
+    notifyListeners();
+  }
+
+  /// Add a [values] to [AutocompleteLabelController.values]
+  /// and this class notifies its listeners
+  void addAll(List<T> values) {
+    this.values.addAll(values);
+    _selectOptionIndex = _none;
+    notifyListeners();
+  }
+
+  /// Add a [values] to [AutocompleteLabelController.values]
+  /// and this class notifies its listeners
   void remove(T value) {
     values.remove(value);
     notifyListeners();
   }
 
+  /// Remove a value with a specified [index] in [values]
+  /// and this class notifies its listeners
   void removeIndex(int i) {
     remove(values[i]);
   }
 
+  /// Remove the last value in [values]
+  /// and this class notifies its listeners
   void removeLast() {
     if (0 == values.length) return;
     values.removeLast();
     notifyListeners();
   }
 
-  void upOption() {
-    selectOptionIndex--;
-    if (selectOptionIndex < 0) {
-      selectOptionIndex = options.length - 1;
+  void _upOption() {
+    _selectOptionIndex--;
+    if (_selectOptionIndex < 0) {
+      _selectOptionIndex = _options.length - 1;
     }
   }
 
-  void downOption() {
-    selectOptionIndex++;
-    if (options.length <= selectOptionIndex) {
-      selectOptionIndex = 0;
+  void _downOption() {
+    _selectOptionIndex++;
+    if (_options.length <= _selectOptionIndex) {
+      _selectOptionIndex = 0;
     }
   }
 
-  void cancelOption() {
-    selectOptionIndex = none;
+  void _cancelOption() {
+    _selectOptionIndex = _none;
   }
 }
 
+/// A widget that helps the user to select a label
+/// by entering some text and selecting from a list of options.
+///
+/// The autocomplete label calls the [onChanged] callback whenever the user changes the values in the field.
+///
+/// To control the values that is displayed in the autocomplete label,
+/// use the [autocompleteLabelController].
+/// For example, to set the initial values of the autocomplete label,
+/// use a controller that already contains some values.
+/// The controller can also control the selectable
+/// label options source (and to observe changes to the values).
+///
+/// Reading values:
+///
+/// A common way to read a values from a [AutocompleteLabel] is to use the [onChanged] callback.
+/// This callback is applied to the autocomplete label's current values
+/// when the user finishes editing or selected option.
+///
+/// For most applications the [onChanged] callback will be sufficient for reacting to user input.
+///
+/// Keep in mind you can also always read the current string
+/// from a AutocompleteLabel's [AutocompleteLabelController]
+/// using [AutocompleteLabelController.text].
 class AutocompleteLabel<T> extends StatefulWidget {
+  /// Build a single item widget of the deletable label values widgets
+  /// from the value of the specified index
+  ///
+  /// If not provided, a standard Material-style text button
+  /// with a delete icon will be built by default.
   final ValueViewBuilder valueViewBuilder;
+
+  /// Builds the deletable label values widgets(which is value box)
+  /// from textField and a list of values objects.
+  ///
+  /// If not provided, [valueViewBuilder] will be used to
+  /// build a standard Material-style Wrap list by default.
+  ///
+  /// See also:
+  ///
+  ///   * [fieldViewBuilder], which is the builder that creates the textField.
+  ///   * [valueViewBuilder], which is a builder for building a single item.
   final ValueBoxBuilder valueBoxBuilder;
+
+  /// Build a single item widget of the selectable label options widgets
+  /// from the option of the specified index.
+  ///
+  /// If not provided, will build a standard Material-style text by default.
   final OptionViewBuilder optionViewBuilder;
+
+  /// Builds the selectable label options widgets(which is option box) from a list of values objects.
+  ///
+  /// These options use the [CompositedTransformFollower]
+  /// in Overlay to float below or above [valueBoxBuilder],
+  /// and their position depends on the [optionBoxDirection] property.
+  ///
+  /// If not provided, will build a standard Material-style list of results by default.
+  ///
+  /// See also:
+  ///
+  ///   * [optionBoxDirection], which is the attribute.
+  /// that indicates the direction of the [valueBoxBuilder].
+  ///   * [optionViewBuilder], which is a builder for building a single item.
   final OptionBoxBuilder optionBoxBuilder;
+
+  /// Builds the field whose input is used to get the options.
+  ///
+  /// Pass the provided [TextEditingController] to
+  /// the field built here so that [AutocompleteLabel] can listen for changes.
+  ///
+  /// If not provided, a borderless text field
+  /// of material style will be constructed by default,
+  /// wrapped in the [DryIntrinsicWidth] widget, the width of 68.
+  ///
+  /// See also:
+  ///
+  ///   * [DryIntrinsicWidth], which is useful in situations
+  /// where the `child` does not support dry layout.
   final FieldViewBuilder fieldViewBuilder;
 
+  /// Controls the values being edited.
+  ///
+  /// If null, this widget will create its own AutocompleteLabelController.
   final AutocompleteLabelController autocompleteLabelController;
+
+  /// Controls the text being edited.
+  ///
+  /// If null, this widget will create its own TextEditingController.
   final TextEditingController textEditingController;
 
+  /// A function that returns the current selectable label option objects given the current string.
   final OptionsBuilder? optionsBuilder;
+
+  /// A function that returns the label object given the current string.
   final ValueBuilder valueBuilder;
+
+  /// Returns the string to display in the field when the label option is selected.
+  /// This is useful when using a custom T type and
+  /// the string to display is different than the string to search by.
+  ///
+  /// If not provided, will use option.toString().
   final OptionToString displayStringForOption;
 
+  /// Defines the keyboard focus for this widget.
+  ///
+  /// The [focusNode] is a long-lived object that's typically managed by a [StatefulWidget] parent.
+  /// See [TextField.focusNode] for more information.
+  ///
+  /// If null, this widget will create its own [FocusNode].
+  ///
+  /// ### Keyboard
+  ///
+  /// On Android, the user can hide the keyboard -
+  /// without changing the focus - with the system back button.
+  /// They can restore the keyboard's visibility by tapping on a text field.
+  /// But we can set [keepAutofocus] to change this.
+  ///
+  /// See also:
+  ///
+  ///   * [keepAutofocus], which is to set whether to still have the focus when the keyboard is hidden.
   final FocusNode focusNode;
+
+  /// Whether to keep the focus automatically, this `autofocus` is not [TextField.autofocus].
+  ///
+  /// [keepAutofocus] is used in two places, one is when the soft keyboard disappears,
+  /// and the other is when you click outside the option box.
+  ///
+  /// If it is false, close the option box when you click outside the option box.
+  /// When the keyboard is hidden, the option box will be closed,
+  /// and the textField of [AutocompleteLabel] will also lose focus.
+  ///
+  /// If it is true, when the soft keyboard is hidden,
+  /// on Android, the soft keyboard can only be popped up by clicking the textField.
+  /// For details, refer to [TextField.focusNode].
+  ///
+  /// See also:
+  ///
+  ///   * [TextField.focusNode], defines the keyboard focus for the textField
+  final bool keepAutofocus;
+
+  /// Called when the user initiates a change to the AutocompleteLabel's values:
+  /// when they have inserted or deleted value.
   final OnChanged? onChanged;
 
+  /// The minimum height of the selectable label options widgets.
+  ///
+  /// The [minOptionBoxHeight] is only available when [optionBoxDirection] is null.
+  ///
+  /// If not provided, the default value is 100.
+  ///
+  /// See also:
+  ///
+  ///   * [optionBoxDirection], control the vertical direction of the option box
   final double minOptionBoxHeight;
-  final bool autoOptionHide;
+
+  /// The vertical direction attribute of the selectable label options widgets.
+  ///
+  /// If it's [VerticalDirection.up],
+  /// the option box is fixed above the textField,
+  /// and if it's [VerticalDirection.down], it's below it.
+  ///
+  /// If it's `null`, the vertical position of the appropriate option box
+  /// will be calculated automatically.
+  /// The calculation method is that when the offset of the textField from
+  /// the bottom of the root layout is greater than [minOptionBoxHeight]
+  /// or greater than the offset from the top,
+  /// the option box is located below the textField,
+  /// otherwise it is located above it.
+  ///
+  /// See also:
+  ///
+  ///   * [minOptionBoxHeight], which is the minimum height of the option box.
   final VerticalDirection? optionBoxDirection;
 
+  /// Creates an instance of [AutocompleteLabel].
   AutocompleteLabel({
     Key? key,
     this.valueViewBuilder = defaultValueViewBuilder,
@@ -226,7 +414,7 @@ class AutocompleteLabel<T> extends StatefulWidget {
     FocusNode? focusNode,
     this.onChanged,
     this.minOptionBoxHeight = 100,
-    this.autoOptionHide = false,
+    this.keepAutofocus = true,
     this.displayStringForOption = defaultStringForOption,
     this.optionBoxDirection,
   })  : this.focusNode = focusNode ?? FocusNode(),
@@ -235,8 +423,10 @@ class AutocompleteLabel<T> extends StatefulWidget {
         this.textEditingController =
             textEditingController ?? TextEditingController(),
         super(key: key);
-  static const defaultFontSize = 16.0;
 
+  static const _defaultFontSize = 16.0;
+
+  /// The default way to build the single item of the value box in [valueViewBuilder].
   static Widget defaultValueViewBuilder(BuildContext context,
       ValueOnDeleted onDeleted, int index, dynamic value) {
     return InkWell(
@@ -247,10 +437,11 @@ class AutocompleteLabel<T> extends StatefulWidget {
         child: Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text(value.toString(), style: TextStyle(fontSize: defaultFontSize)),
+            Text(value.toString(),
+                style: TextStyle(fontSize: _defaultFontSize)),
             Icon(
               Icons.close,
-              size: defaultFontSize,
+              size: _defaultFontSize,
             ),
           ],
         ),
@@ -258,6 +449,7 @@ class AutocompleteLabel<T> extends StatefulWidget {
     );
   }
 
+  /// The default way to build the deletable label values widgets in [valueBoxBuilder].
   static Widget defaultValueBoxBuilder(
     BuildContext context,
     ValueOnDeleted onDeleted,
@@ -294,6 +486,7 @@ class AutocompleteLabel<T> extends StatefulWidget {
     );
   }
 
+  /// The default way to build the single item of the option box in [optionViewBuilder].
   static Widget defaultOptionViewBuilder(BuildContext context,
       OnSelected onSelected, int index, dynamic option, bool isHighlight) {
     return InkWell(
@@ -306,6 +499,7 @@ class AutocompleteLabel<T> extends StatefulWidget {
     );
   }
 
+  /// The default way to build the selectable label options widgets in [optionBoxBuilder].
   static Widget defaultOptionBoxBuild(
     BuildContext context,
     OnSelected onSelected,
@@ -325,6 +519,7 @@ class AutocompleteLabel<T> extends StatefulWidget {
     );
   }
 
+  /// The default way to build the text field widget in [fieldViewBuilder].
   static Widget defaultFieldViewBuilder(
     BuildContext context,
     TextEditingController textEditingController,
@@ -338,7 +533,7 @@ class AutocompleteLabel<T> extends StatefulWidget {
           padding: EdgeInsets.all(5),
           child: TextField(
             focusNode: focusNode,
-            style: TextStyle(fontSize: AutocompleteLabel.defaultFontSize),
+            style: TextStyle(fontSize: AutocompleteLabel._defaultFontSize),
             strutStyle: StrutStyle(height: 1.0),
             decoration: InputDecoration(
               contentPadding: EdgeInsets.zero,
@@ -356,12 +551,14 @@ class AutocompleteLabel<T> extends StatefulWidget {
     );
   }
 
+  /// The default way to convert an string to a label value in [valueBuilder].
+  ///
+  /// Simply uses the `trim().toString()` method on the value.
   static dynamic defaultValueBuilder(String value) {
     return value.trim();
   }
 
-  /// The default way to convert an option to a string in
-  /// [displayStringForOption].
+  /// The default way to convert an option to a string in [displayStringForOption].
   ///
   /// Simply uses the `toString` method on the option.
   static String defaultStringForOption(dynamic option) {
@@ -469,8 +666,8 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
               context,
               _onSelected,
               widget.optionViewBuilder,
-              widget.autocompleteLabelController.options,
-              widget.autocompleteLabelController.selectOptionIndex,
+              widget.autocompleteLabelController._options,
+              widget.autocompleteLabelController._selectOptionIndex,
               _overlayEntryDir,
             ),
           ),
@@ -487,7 +684,7 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
               offset: Offset(0.0, _overlayEntryY),
               child: optionsBox,
             ));
-        return widget.autoOptionHide
+        return !widget.keepAutofocus
             ? Stack(
                 children: <Widget>[
                   Positioned.fill(
@@ -545,7 +742,7 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
 
   void _onSelected(int index) {
     widget.autocompleteLabelController
-        .add(widget.autocompleteLabelController.options[index]);
+        .add(widget.autocompleteLabelController._options[index]);
   }
 
   void _onBoxOffsetChanged(
@@ -579,14 +776,16 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
   }
 
   void _handleOptionsBuilder(String text) {
-    for (int i = 0; i < widget.autocompleteLabelController.source.length; i++) {
-      var item = widget.autocompleteLabelController.source[i];
+    for (int i = 0;
+        i < widget.autocompleteLabelController._source.length;
+        i++) {
+      var item = widget.autocompleteLabelController._source[i];
       if (widget
               .displayStringForOption(item)
               .toLowerCase()
               .contains(text.trim().toLowerCase()) &&
           !widget.autocompleteLabelController.values.contains(item)) {
-        widget.autocompleteLabelController.options.add(item);
+        widget.autocompleteLabelController._options.add(item);
       }
     }
   }
@@ -597,8 +796,8 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
       return;
     }
 
-    widget.autocompleteLabelController.options.clear();
-    widget.autocompleteLabelController.cancelOption();
+    widget.autocompleteLabelController._options.clear();
+    widget.autocompleteLabelController._cancelOption();
 
     String value = widget.textEditingController.text;
 
@@ -614,21 +813,21 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
     }
 
     if (widget.optionsBuilder != null) {
-      widget.autocompleteLabelController.options
+      widget.autocompleteLabelController._options
           .addAll(widget.optionsBuilder!(value));
     } else {
       _handleOptionsBuilder(value);
     }
 
-    if (0 < widget.autocompleteLabelController.options.length) {
+    if (0 < widget.autocompleteLabelController._options.length) {
       _openOptionBox();
       _offsetDetectorController.notifyStateChanged();
     }
   }
 
   void _onEditingComplete() {
-    if (widget.autocompleteLabelController.isSelectOption) {
-      _onAddLabel(widget.autocompleteLabelController.selectOption);
+    if (widget.autocompleteLabelController._isSelectOption) {
+      _onAddLabel(widget.autocompleteLabelController._selectOption);
     } else if (widget.textEditingController.text.isNotEmpty) {
       _onAddLabel(widget.valueBuilder(widget.textEditingController.text));
     }
@@ -644,7 +843,7 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
   void _selectOption() {
     _isSelectOption = true;
     final optionText = widget.displayStringForOption(
-        widget.autocompleteLabelController.selectOption);
+        widget.autocompleteLabelController._selectOption);
     widget.textEditingController.value = TextEditingValue(
       text: optionText,
       selection: TextSelection.collapsed(offset: optionText.length),
@@ -666,11 +865,11 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
       widget.autocompleteLabelController.removeLast();
     } else if (value.logicalKey == LogicalKeyboardKey.escape) {
       if (!isOpened) return;
-      if (widget.autocompleteLabelController.selectOptionIndex ==
-          AutocompleteLabelController.none) {
+      if (widget.autocompleteLabelController._selectOptionIndex ==
+          AutocompleteLabelController._none) {
         _closeOptionBox();
       } else {
-        widget.autocompleteLabelController.cancelOption();
+        widget.autocompleteLabelController._cancelOption();
         assert(_overlayEntry != null);
         _overlayEntry!.markNeedsBuild();
       }
@@ -682,11 +881,11 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
 
     if (value.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (!isOpened) return;
-      widget.autocompleteLabelController.upOption();
+      widget.autocompleteLabelController._upOption();
       _selectOption();
     } else if (value.logicalKey == LogicalKeyboardKey.arrowDown) {
       if (!isOpened) return;
-      widget.autocompleteLabelController.downOption();
+      widget.autocompleteLabelController._downOption();
       _selectOption();
     }
   }
@@ -730,7 +929,7 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
   }
 
   void _onKeyboardState(bool state) {
-    if (widget.autoOptionHide && !state) {
+    if (!widget.keepAutofocus && !state) {
       widget.focusNode.unfocus();
       _closeOptionBox();
     }
@@ -745,6 +944,10 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
 /// support dry layout, e.g., `TextField` as of 01/02/2021.
 ///
 /// see [dry_layout_stop_gap.dart](https://gist.github.com/matthew-carroll/65411529a5fafa1b527a25b7130187c6)
+///
+/// See also:
+///
+///   * [IntrinsicWidth], which is a widget that sizes its child to the child's maximum intrinsic width.
 class DryIntrinsicWidth extends SingleChildRenderObjectWidget {
   const DryIntrinsicWidth({Key? key, Widget? child})
       : super(key: key, child: child);

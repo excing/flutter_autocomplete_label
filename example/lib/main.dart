@@ -62,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
     "youtube",
   ]);
 
-  bool _autoOptionHide = false;
+  bool _keepAutofocus = false;
 
   @override
   void dispose() {
@@ -77,10 +77,10 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
         actions: [
           Switch(
-            value: _autoOptionHide,
+            value: _keepAutofocus,
             onChanged: (value) {
               setState(() {
-                _autoOptionHide = value;
+                _keepAutofocus = value;
               });
             },
           )
@@ -94,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 flex: 1,
                 child: AutocompleteLabel<String>(
-                  autoOptionHide: _autoOptionHide,
+                  keepAutofocus: _keepAutofocus,
                   onChanged: (values) => print("$values"),
                   autocompleteLabelController: _autocompleteLabelController,
                 ),
