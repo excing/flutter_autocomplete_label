@@ -221,7 +221,7 @@ class AutocompleteLabelController<T> extends ChangeNotifier {
     }
   }
 
-  void _cancelOption() {
+  void _cancelSelected() {
     _selectOptionIndex = _none;
   }
 }
@@ -586,6 +586,8 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
   bool _isSelectOption = false;
   GlobalKey _textFieldKey = GlobalKey();
 
+  String _oldValue = "";
+
   void _openOptionBox() {
     if (this.isOpened) return;
     assert(this._overlayEntry != null);
@@ -796,10 +798,17 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
       return;
     }
 
-    widget.autocompleteLabelController._options.clear();
-    widget.autocompleteLabelController._cancelOption();
-
     String value = widget.textEditingController.text;
+    String oldValue = _oldValue;
+
+    if (value == oldValue) {
+      return;
+    }
+
+    widget.autocompleteLabelController._options.clear();
+    widget.autocompleteLabelController._cancelSelected();
+
+    _oldValue = value;
 
     if (value == "") {
       _closeOptionBox();
@@ -869,9 +878,8 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
           AutocompleteLabelController._none) {
         _closeOptionBox();
       } else {
-        widget.autocompleteLabelController._cancelOption();
-        assert(_overlayEntry != null);
-        _overlayEntry!.markNeedsBuild();
+        widget.autocompleteLabelController._cancelSelected();
+        _updateOptionBox();
       }
     }
   }
@@ -900,14 +908,12 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
   bool _listening = false;
 
   void _attachKeyboardIfDetached() {
-    print("_attachKeyboardIfDetached");
     if (_listening) return;
     RawKeyboard.instance.addListener(_handleRawKeyEvent);
     _listening = true;
   }
 
   void _detachKeyboardIfAttached() {
-    print("_detachKeyboardIfAttached");
     if (!_listening) return;
     RawKeyboard.instance.removeListener(_handleRawKeyEvent);
     _listening = false;
@@ -929,9 +935,13 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
   }
 
   void _onKeyboardState(bool state) {
-    if (!widget.keepAutofocus && !state) {
-      widget.focusNode.unfocus();
+    if (widget.keepAutofocus) return;
+
+    if (!state) {
       _closeOptionBox();
+      widget.focusNode.unfocus();
+    } else {
+      _openOptionBox();
     }
   }
 }
