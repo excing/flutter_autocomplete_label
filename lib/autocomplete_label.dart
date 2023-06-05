@@ -872,6 +872,7 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
     if (widget.textEditingController.text == "" &&
         value.logicalKey == LogicalKeyboardKey.backspace) {
       widget.autocompleteLabelController.removeLast();
+      _updateOptionBox();
     } else if (value.logicalKey == LogicalKeyboardKey.escape) {
       if (!isOpened) return;
       if (widget.autocompleteLabelController._selectOptionIndex ==
@@ -881,6 +882,8 @@ class _AutocompleteLabelState<T> extends State<AutocompleteLabel> {
         widget.autocompleteLabelController._cancelSelected();
         _updateOptionBox();
       }
+    } else {
+      _updateOptionBox();
     }
   }
 
